@@ -112,7 +112,7 @@ export default function GazePage() {
   };
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen bg-slate-50 p-6 font-mono">
+    <div className="flex flex-col items-center justify-start min-h-screen bg-slate-50 p-6 pt-12 font-mono">
       {/* Activate gaze control */}
       <Script
         src="https://webgazer.cs.brown.edu/webgazer.js"
@@ -121,7 +121,7 @@ export default function GazePage() {
       />
 
       {/* Page Title and prompt */}
-      <div className="fixed top-10 text-center mb-10">
+      <div className="top-10 text-center mb-10">
         <h1 className="text-2xl font-black text-slate-900 font-mono underline">
           {activeLabel}
         </h1>
@@ -180,7 +180,7 @@ export default function GazePage() {
       {/* Actual button clicking stage */}
       {/* On button activation page title displays button clicked */}
       {status === "test" && (
-        <div className="grid grid-cols-2 gap-4 max-w-4xl w-full font-mono">
+        <div className="grid grid-cols-2 gap-3 md:gap-4 max-w-4xl w-full font-mono">
           <div className="col-span-2 flex justify-center font-mono">
             <GazeButton label="Top Center" onActivate={setActiveLabel} />
           </div>
