@@ -135,12 +135,19 @@ export default function GazePage() {
 
       {/* Camera start button */}
       {status === "ready" && (
+        <>
+        <p className="px-10 font-mono text-slate-900 text-m text-center">
+          Thankyou for participating in this test. Please complete the tasks on the next pages once on a laptop
+          and once on a mobile, spend no more than 5 mins on each go through. Once complete please answer the short survey.
+          Please note that your participation is entirely voluntary 
+          and you can stop at any point. For any questions please reach out.</p>
         <button
           onClick={initWebGazer}
           className="px-10 py-4 bg-emerald-500 text-white font-bold rounded-xl shadow-xl hover:bg-emerald-700 transition-color font-mono"
         >
           Initialize Camera
         </button>
+        </>
       )}
 
       {/* calibration page */}
