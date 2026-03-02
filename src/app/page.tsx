@@ -121,7 +121,7 @@ export default function GazePage() {
       />
 
       {/* Page Title and prompt */}
-      <div className="fixed top-10 text-center">
+      <div className="fixed top-10 text-center pb-6">
         <h1 className="text-2xl font-black text-slate-900 font-mono underline">
           {activeLabel}
         </h1>
