@@ -127,7 +127,7 @@ export default function GazePage() {
         </h1>
         <p className="text-slate-500 font-mono underline">
           {status === "calibrating"
-            ? "Click the red dots to calibrate"
+            ? "To train the tracker, please look at the red dots while clicking them repeatedly, the more clicks the better"
             : status === "test" ? "Use the gaze tracker to hover on the buttons to activate them"
             : "Follow the prompts below"}
         </p>
