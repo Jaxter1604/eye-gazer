@@ -180,7 +180,7 @@ export default function GazePage() {
       {/* Actual button clicking stage */}
       {/* On button activation page title displays button clicked */}
       {status === "test" && (
-        <div className="grid grid-cols-2 gap-8 max-w-4xl w-full font-mono">
+        <div className="grid grid-cols-2 gap-4 max-w-4xl w-full font-mono">
           <div className="col-span-2 flex justify-center font-mono">
             <GazeButton label="Top Center" onActivate={setActiveLabel} />
           </div>
