@@ -53,7 +53,7 @@ export default function GazePage() {
       .begin();
 
     window.webgazer
-      .showVideoPreview(true)
+      .showVideoPreview(false)
       .showPredictionPoints(true)
       .applyKalmanFilter(true);
 
