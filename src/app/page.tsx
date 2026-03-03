@@ -45,17 +45,18 @@ const initWebGazer = async () => {
   if (!window.webgazer) return;
 
   try {
-    const devices = await navigator.mediaDevices.enumerateDevices();
-    const videoDevices = devices.filter(d => d.kind === "videoinput");
+    // 1️⃣ Manually request camera first
+    const stream = await navigator.mediaDevices.getUserMedia({
+      video: true
+    });
 
-    if (videoDevices.length === 0) {
-      throw new Error("No video input devices found");
-    }
+    // 2️⃣ Attach stream to WebGazer BEFORE begin()
+    window.webgazer.setVideoElement(document.createElement("video"));
+    const video = window.webgazer.getVideoElement();
+    video.srcObject = stream;
+    video.play();
 
-    window.webgazer.params.cameraConstraints = {
-      deviceId: { exact: videoDevices[0].deviceId }
-    };
-
+    // 3️⃣ Now configure WebGazer
     window.webgazer
       .setRegression("ridge")
       .setGazeListener((data: { x: number; y: number }) => {
@@ -63,12 +64,14 @@ const initWebGazer = async () => {
         handleGaze(data);
       });
 
-    await window.webgazer.begin();
+    // 4️⃣ Begin WITHOUT letting it request camera again
+    await window.webgazer.begin(false); 
+    // false = do NOT auto-request webcam
 
     setStatus("calibrating");
+
   } catch (e) {
     console.error("Camera error:", e);
-    alert("Camera could not be started.");
   }
 };
 
