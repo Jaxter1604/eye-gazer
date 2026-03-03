@@ -45,9 +45,16 @@ const initWebGazer = async () => {
   if (!window.webgazer) return;
 
   try {
-    navigator.mediaDevices.enumerateDevices()
-  .then(devices => console.log(devices));
-    window.webgazer.params.cameraConstraints = true;
+    const devices = await navigator.mediaDevices.enumerateDevices();
+    const videoDevices = devices.filter(d => d.kind === "videoinput");
+
+    if (videoDevices.length === 0) {
+      throw new Error("No video input devices found");
+    }
+
+    window.webgazer.params.cameraConstraints = {
+      deviceId: { exact: videoDevices[0].deviceId }
+    };
 
     window.webgazer
       .setRegression("ridge")
@@ -57,11 +64,6 @@ const initWebGazer = async () => {
       });
 
     await window.webgazer.begin();
-
-    window.webgazer
-      .showVideoPreview(true)
-      .showPredictionPoints(true)
-      .applyKalmanFilter(true);
 
     setStatus("calibrating");
   } catch (e) {
