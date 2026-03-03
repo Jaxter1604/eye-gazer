@@ -207,7 +207,7 @@ function GazeButton({
   return (
     <button
       data-gazeable="true"
-      className="w-full h-46 md:h-80 bg-slate-300 border-4 border-slate-200 rounded-3xl text-xl font-bold text-slate-700 transition-color"
+      className="w-full h-46 md:h-60 bg-slate-300 border-4 border-slate-200 rounded-3xl text-xl font-bold text-slate-700 transition-color"
       onClick={() => onActivate(label)}
     >
       {label}
