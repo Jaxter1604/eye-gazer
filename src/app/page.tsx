@@ -41,21 +41,20 @@ export default function GazePage() {
   }, []);
 
   // initialise webgazer with ocrrect settings
-const initWebGazer = () => {
+const initWebGazer = async () => {
   if (!window.webgazer) return;
 
   try {
-    window.webgazer.params.cameraConstraints = {
-      video: true // let browser choose
-    };
+    window.webgazer.params.cameraConstraints = true;
 
     window.webgazer
       .setRegression("ridge")
       .setGazeListener((data: { x: number; y: number }) => {
         if (!data || statusRef.current !== "test") return;
         handleGaze(data);
-      })
-      .begin();
+      });
+
+    await window.webgazer.begin();
 
     window.webgazer
       .showVideoPreview(true)
@@ -64,11 +63,10 @@ const initWebGazer = () => {
 
     setStatus("calibrating");
   } catch (e) {
-    alert("Camera access denied. Please enable camera permissions.");
-    console.error(e);
+    console.error("Camera error:", e);
+    alert("Camera could not be started.");
   }
 };
-
 
   // Count and siaply clicks for calibration
   // because why not
