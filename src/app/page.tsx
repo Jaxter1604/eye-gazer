@@ -44,6 +44,12 @@ export default function GazePage() {
 const initWebGazer = () => {
   if (!window.webgazer) return;
   try {
+    // Set lower resolution constraints (e.g., 320x240 or 640x480)
+    window.webgazer.params.cameraConstraints = {
+      width: { ideal: 640 },  // Lower resolution
+      height: { ideal: 480 }, // Lower resolution
+      facingMode: "user"      // Use front-facing camera if available
+    };
     window.webgazer
       .setRegression("ridge")
       .setGazeListener((data: { x: number; y: number; }) => {
