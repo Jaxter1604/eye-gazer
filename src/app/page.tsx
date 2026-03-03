@@ -45,6 +45,8 @@ const initWebGazer = async () => {
   if (!window.webgazer) return;
 
   try {
+    navigator.mediaDevices.enumerateDevices()
+  .then(devices => console.log(devices));
     window.webgazer.params.cameraConstraints = true;
 
     window.webgazer
