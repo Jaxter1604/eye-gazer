@@ -116,7 +116,7 @@ export default function GazePage() {
       {/* Activate gaze control */}
       <Script
         src="/webgazer.js"
-        strategy="lazyOnload"
+        strategy="afterInteractive"
         onLoad={() => setStatus("ready")}
       />
 
