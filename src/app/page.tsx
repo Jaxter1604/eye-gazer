@@ -10,11 +10,9 @@ declare global {
 }
 
 export default function GazePage() {
-  // predefine states -> start on loading state until camera starts
-  const [status, setStatus] = useState<
-    "loading" | "ready" | "calibrating" | "test"
-  >("loading");
-
+  // States to track initialization and errors
+  const [status, setStatus] = useState<"loading" | "ready" | "calibrating" | "test" | "error">("loading");
+  const [errorMessage, setErrorMessage] = useState("");
   const [calibrationPoints, setCalibrationPoints] = useState(0);
   const [activeLabel, setActiveLabel] = useState("GAZE CONTROL");
 
@@ -22,15 +20,14 @@ export default function GazePage() {
   const lookTimer = useRef<NodeJS.Timeout | null>(null);
   const currentElement = useRef<HTMLElement | null>(null);
 
-  //time needed to activate button in ms
   const DWELL_TIME = 500;
 
-  //get current page status
+  // Keep ref in sync with state for the gaze listener
   useEffect(() => {
     statusRef.current = status;
   }, [status]);
 
-  //actiavte webgazer or reset timer
+  // Clean up WebGazer when leaving the page
   useEffect(() => {
     return () => {
       if (window.webgazer) {
@@ -40,38 +37,63 @@ export default function GazePage() {
     };
   }, []);
 
-  // initialise webgazer with ocrrect settings
-  const initWebGazer = () => {
-    if (!window.webgazer) return;
-
-    window.webgazer
-      .setRegression("ridge")
-      .setGazeListener((data: any) => {
-        if (!data || statusRef.current !== "test") return;
-        handleGaze(data);
-      })
-      .begin();
-
-    window.webgazer
-      .showVideoPreview(true)
-      .showPredictionPoints(true)
-      .applyKalmanFilter(true);
-
-    //update status to next stage
-    setStatus("calibrating");
+  /**
+   * WINDOWS FIX: Explicitly check for WebGL support. 
+   * WebGazer's "ridge" regression will fail silently if Hardware Acceleration is off.
+   */
+  const checkHardwareSupport = () => {
+    try {
+      const canvas = document.createElement("canvas");
+      const supportsWebGL = !!(
+        window.WebGLRenderingContext &&
+        (canvas.getContext("webgl") || canvas.getContext("experimental-webgl"))
+      );
+      if (!supportsWebGL) throw new Error("WebGL is disabled. Please enable Hardware Acceleration in your browser settings.");
+    } catch (e) {
+      throw new Error("Hardware Acceleration is required for gaze tracking.");
+    }
   };
 
-  // Count and siaply clicks for calibration
-  // because why not
+  const initWebGazer = async () => {
+    if (!window.webgazer) {
+      setErrorMessage("The tracking script hasn't finished loading yet.");
+      return;
+    }
+
+    try {
+      // 1. Check WebGL (Fixes Windows "No Tracker" issues)
+      checkHardwareSupport();
+
+      // 2. Explicitly request camera to trigger the Windows/Browser prompt
+      await navigator.mediaDevices.getUserMedia({ video: true });
+
+      // 3. Start WebGazer
+      await window.webgazer
+        .setRegression("ridge")
+        .setGazeListener((data: any) => {
+          if (!data || statusRef.current !== "test") return;
+          handleGaze(data);
+        })
+        .begin();
+
+      // 4. Configure UI
+      window.webgazer
+        .showVideoPreview(true) // Set to TRUE so users see if the camera is working
+        .showPredictionPoints(true)
+        .applyKalmanFilter(true);
+
+      setStatus("calibrating");
+    } catch (err: any) {
+      console.error("Initialization failed:", err);
+      setErrorMessage(err.message || "Camera access was denied or a hardware error occurred.");
+      setStatus("error");
+    }
+  };
+
   const handleCalibrationClick = () => {
     setCalibrationPoints((prev) => prev + 1);
   };
 
-  // locate gaze pointer on page
-  // if gaze pointer is on an element
-  // and that element has been deemed reactable to gaze control
-  // start a fresh timer to trigger a click
-  // otherwise reset a timer
   const handleGaze = (data: { x: number; y: number }) => {
     const element = document
       .elementFromPoint(data.x, data.y)
@@ -88,9 +110,11 @@ export default function GazePage() {
     }
   };
 
-  //starts on click timer based on DWELL_TIME
   const startTimer = (el: HTMLElement) => {
+    // Visual feedback that the eye is "hovering"
     el.style.outline = "6px solid #6366f1";
+    el.style.transition = "background-color 0.5s ease";
+    el.style.backgroundColor = "#e0e7ff";
 
     lookTimer.current = setTimeout(() => {
       el.click();
@@ -98,93 +122,103 @@ export default function GazePage() {
     }, DWELL_TIME);
   };
 
-  //reset timer on failed click
   const resetTimer = () => {
     if (lookTimer.current) {
       clearTimeout(lookTimer.current);
       lookTimer.current = null;
     }
-
     if (currentElement.current) {
       currentElement.current.style.outline = "";
+      currentElement.current.style.backgroundColor = "";
       currentElement.current = null;
     }
   };
 
   return (
     <div className="flex flex-col items-center justify-start min-h-screen bg-slate-50 p-6 pt-10 font-mono">
-      {/* Activate gaze control */}
+      {/* Load local script from /public folder */}
       <Script
         src="/webgazer.js"
         strategy="afterInteractive"
         onLoad={() => setStatus("ready")}
+        onError={() => {
+          setStatus("error");
+          setErrorMessage("Failed to load /webgazer.js from the public directory.");
+        }}
       />
 
-      {/* Page Title and prompt */}
-      <div className="top-10 text-center mb-10">
-        <h1 className="text-2xl font-black text-slate-900 font-mono underline">
+      <div className="text-center mb-10">
+        <h1 className="text-2xl font-black text-slate-900 underline">
           {activeLabel}
         </h1>
-        <p className="text-slate-500 font-mono underline">
-          {status === "calibrating"
-            ? "To train the tracker, please look at the red dots while clicking them repeatedly, the more clicks the better"
-            : status === "test" ? "Use the gaze tracker to hover on the buttons to activate them"
-            : "Follow the prompts below"}
+        <p className="text-slate-500 mt-2">
+          {status === "calibrating" ? "Click red dots while looking directly at them." : 
+           status === "test" ? "Stare at a button to 'click' it." : 
+           status === "error" ? "Hardware Error" : "Follow the prompts below."}
         </p>
       </div>
 
-      {/* Camera start button */}
-      {status === "ready" && (
-        <>
-        <p className="px-10 font-mono text-slate-900 text-m text-center">
-          Thankyou for participating in this test. Please complete the tasks on the next pages once on a laptop
-          and once on a mobile, spend no more than 5 mins on each go through. Once complete please answer the short survey.
-          Please note that your participation is entirely voluntary 
-          and you can stop at any point. For any questions please reach out.</p>
-        <button
-          onClick={initWebGazer}
-          className="px-10 py-4 bg-emerald-500 text-white font-bold rounded-xl shadow-xl hover:bg-emerald-700 transition-color font-mono"
-        >
-          Initialize Camera
-        </button>
-        </>
+      {/* Error UI */}
+      {status === "error" && (
+        <div className="bg-red-50 border border-red-200 p-6 rounded-2xl text-red-700 max-w-md text-center">
+          <p className="font-bold mb-2">Wait! Something is blocking the camera:</p>
+          <p className="text-sm">{errorMessage}</p>
+          <button 
+            onClick={() => window.location.reload()}
+            className="mt-4 px-6 py-2 bg-red-600 text-white rounded-lg font-bold"
+          >
+            Try Again
+          </button>
+        </div>
       )}
 
-      {/* calibration page */}
+      {/* Landing State */}
+      {status === "ready" && (
+        <div className="flex flex-col items-center gap-6 max-w-xl text-center">
+          <p className="text-slate-700">
+            Windows users: Please ensure your <strong>Privacy Settings</strong> allow browser camera access and 
+            <strong> Hardware Acceleration</strong> is enabled in Chrome/Edge.
+          </p>
+          <button
+            onClick={initWebGazer}
+            className="px-10 py-4 bg-emerald-500 text-white font-bold rounded-xl shadow-lg hover:bg-emerald-600 transition-all"
+          >
+            Start Eye Tracker
+          </button>
+        </div>
+      )}
+
+      {/* Calibration State */}
       {status === "calibrating" && (
-        <div className="relative w-full h-[600px] flex flex-col items-center justify-between">
-          {/* Create grid for calibration spots */}
-          <div className="absolute inset-0 grid grid-cols-3 grid-rows-3 p-10">
+        <div className="relative w-full h-[500px] border-2 border-dashed border-slate-200 rounded-3xl">
+          <div className="absolute inset-0 grid grid-cols-3 grid-rows-3 p-8">
             {[...Array(9)].map((_, i) => (
               <div key={i} className="flex items-center justify-center">
                 <button
                   onClick={handleCalibrationClick}
-                  className="w-8 h-8 bg-red-400 rounded-full hover:bg-red-500 transition-color shadow-md active:bg-red-800"
+                  className="w-10 h-10 bg-red-500 rounded-full hover:scale-125 active:bg-red-900 transition-all shadow-md"
                 />
               </div>
             ))}
           </div>
 
-          {/* On click change to test stage */}
-          <div className="z-10 mt-auto mb-10 font-mono">
+          <div className="absolute bottom-8 w-full flex justify-center">
             <button
               onClick={() => setStatus("test")}
-              className="px-10 py-4 bg-emerald-500 font-mono font-bold text-white rounded-xl shadow-2xl hover:bg-emerald-700 transition-color"
+              className="px-8 py-3 bg-emerald-500 font-bold text-white rounded-xl shadow-xl"
             >
-              Start Test ({calibrationPoints} clicks)
+              Finish Calibration ({calibrationPoints} clicks)
             </button>
           </div>
         </div>
       )}
 
-      {/* Actual button clicking stage */}
-      {/* On button activation page title displays button clicked */}
+      {/* Main Testing State */}
       {status === "test" && (
-        <div className="grid grid-cols-2 gap-3 md:gap-4 max-w-4xl w-full font-mono">
-          <div className="col-span-2 flex justify-center font-mono">
+        <div className="grid grid-cols-2 gap-4 max-w-4xl w-full">
+          <div className="col-span-2 flex justify-center">
             <GazeButton label="Top Center" onActivate={setActiveLabel} />
           </div>
-
           <GazeButton label="Middle Left" onActivate={setActiveLabel} />
           <GazeButton label="Middle Right" onActivate={setActiveLabel} />
           <GazeButton label="Bottom Left" onActivate={setActiveLabel} />
@@ -195,19 +229,11 @@ export default function GazePage() {
   );
 }
 
-//button template
-//defined as clickable by gaze control
-function GazeButton({
-  label,
-  onActivate,
-}: {
-  label: string;
-  onActivate: (label: string) => void;
-}) {
+function GazeButton({ label, onActivate }: { label: string; onActivate: (label: string) => void }) {
   return (
     <button
       data-gazeable="true"
-      className="w-full h-46 md:h-58 bg-slate-300 border-4 border-slate-200 rounded-3xl text-xl font-bold text-slate-700 transition-color"
+      className="w-full h-32 md:h-44 bg-white border-2 border-slate-200 rounded-2xl text-xl font-bold text-slate-600 shadow-sm transition-all"
       onClick={() => onActivate(label)}
     >
       {label}
