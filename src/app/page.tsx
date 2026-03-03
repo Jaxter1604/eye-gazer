@@ -112,7 +112,7 @@ export default function GazePage() {
   };
 
   return (
-    <div className="flex flex-col items-center justify-start min-h-screen bg-slate-50 p-6 pt-12 font-mono">
+    <div className="flex flex-col items-center justify-start min-h-screen bg-slate-50 p-6 pt-10 font-mono">
       {/* Activate gaze control */}
       <Script
         src="https://webgazer.cs.brown.edu/webgazer.js"
