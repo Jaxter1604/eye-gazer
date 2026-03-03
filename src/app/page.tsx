@@ -43,27 +43,28 @@ export default function GazePage() {
   // initialise webgazer with ocrrect settings
 const initWebGazer = () => {
   if (!window.webgazer) return;
+
   try {
-    // Set lower resolution constraints (e.g., 320x240 or 640x480)
     window.webgazer.params.cameraConstraints = {
-      width: { ideal: 640 },  // Lower resolution
-      height: { ideal: 480 }, // Lower resolution
-      facingMode: "user"      // Use front-facing camera if available
+      video: true // let browser choose
     };
+
     window.webgazer
       .setRegression("ridge")
-      .setGazeListener((data: { x: number; y: number; }) => {
+      .setGazeListener((data: { x: number; y: number }) => {
         if (!data || statusRef.current !== "test") return;
         handleGaze(data);
       })
       .begin();
+
     window.webgazer
       .showVideoPreview(true)
       .showPredictionPoints(true)
       .applyKalmanFilter(true);
+
     setStatus("calibrating");
   } catch (e) {
-    alert("Camera access denied. Please enable camera permissions in your browser settings.");
+    alert("Camera access denied. Please enable camera permissions.");
     console.error(e);
   }
 };
