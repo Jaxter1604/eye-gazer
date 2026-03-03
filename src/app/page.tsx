@@ -41,25 +41,27 @@ export default function GazePage() {
   }, []);
 
   // initialise webgazer with ocrrect settings
-  const initWebGazer = () => {
-    if (!window.webgazer) return;
-
+const initWebGazer = () => {
+  if (!window.webgazer) return;
+  try {
     window.webgazer
       .setRegression("ridge")
-      .setGazeListener((data: any) => {
+      .setGazeListener((data: { x: number; y: number; }) => {
         if (!data || statusRef.current !== "test") return;
         handleGaze(data);
       })
       .begin();
-
     window.webgazer
-      .showVideoPreview(false)
+      .showVideoPreview(true)
       .showPredictionPoints(true)
       .applyKalmanFilter(true);
-
-    //update status to next stage
     setStatus("calibrating");
-  };
+  } catch (e) {
+    alert("Camera access denied. Please enable camera permissions in your browser settings.");
+    console.error(e);
+  }
+};
+
 
   // Count and siaply clicks for calibration
   // because why not
