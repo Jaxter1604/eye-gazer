@@ -41,39 +41,25 @@ export default function GazePage() {
   }, []);
 
   // initialise webgazer with ocrrect settings
-const initWebGazer = async () => {
-  if (!window.webgazer) return;
+  const initWebGazer = () => {
+    if (!window.webgazer) return;
 
-  try {
-    // 1️⃣ Manually request camera first
-    const stream = await navigator.mediaDevices.getUserMedia({
-      video: true
-    });
-
-    // 2️⃣ Attach stream to WebGazer BEFORE begin()
-    window.webgazer.setVideoElement(document.createElement("video"));
-    const video = window.webgazer.getVideoElement();
-    video.srcObject = stream;
-    video.play();
-
-    // 3️⃣ Now configure WebGazer
     window.webgazer
       .setRegression("ridge")
-      .setGazeListener((data: { x: number; y: number }) => {
+      .setGazeListener((data: any) => {
         if (!data || statusRef.current !== "test") return;
         handleGaze(data);
-      });
+      })
+      .begin();
 
-    // 4️⃣ Begin WITHOUT letting it request camera again
-    await window.webgazer.begin(false); 
-    // false = do NOT auto-request webcam
+    window.webgazer
+      .showVideoPreview(true)
+      .showPredictionPoints(true)
+      .applyKalmanFilter(true);
 
+    //update status to next stage
     setStatus("calibrating");
-
-  } catch (e) {
-    console.error("Camera error:", e);
-  }
-};
+  };
 
   // Count and siaply clicks for calibration
   // because why not
